@@ -2,21 +2,24 @@ import cv2
 import os
 import numpy as np
 
-# Base input and output paths
+# NOTE: Make sure OpenCV is installed: pip install opencv-python
+# REFERNCE: https://www.geeksforgeeks.org/python/python-program-extract-frames-using-opencv/
+
+# Base input and output paths - [change these paths to your directories]
 base_input = r"C:\Users\Althea\COLLEGE\THESIS\Dataset\FSL-105 A dataset for recognizing 105 Filipino sign language videos\clips"
 base_output = r"C:\Users\Althea\COLLEGE\THESIS\MVTN\src_mvtn\datasets\FSL105_Frames"
 
 # Number of frames to extract from each video
 num_frames = 40
 
-# not sure
+# not yet sure
 # frame_size = (224, 224)
 
 def numeric_sort(files):
-    """Sort file list numerically by filename before extension."""
+    # Sort file list numerically by filename before extension.
     return sorted(files, key=lambda f: int(os.path.splitext(f)[0]))
 
-# Loop through each subfolder (sorted: 0, 1, ..., 103)
+# Loop through each subfolder (sorted: 0, 1, ..., 104) no need to manually change input/output paths
 for folder in sorted(os.listdir(base_input), key=lambda x: int(x) if x.isdigit() else x):
     input_folder = os.path.join(base_input, folder)
     if not os.path.isdir(input_folder):
@@ -46,6 +49,7 @@ for folder in sorted(os.listdir(base_input), key=lambda x: int(x) if x.isdigit()
             cap.release()
             continue
 
+        # not yet sure
         # Pick evenly spaced frame indices without duplicates
         frame_indices = np.linspace(0, total_frames - 1, num_frames, dtype=int)
 
@@ -58,6 +62,7 @@ for folder in sorted(os.listdir(base_input), key=lambda x: int(x) if x.isdigit()
                 break
 
             if count in frame_indices:
+                # not yet sure
                 # resized_frame = cv2.resize(frame, frame_size)
                 filename = os.path.join(save_dir, f"frame_{extracted+1}.jpg")
                 cv2.imwrite(filename, frame) 
