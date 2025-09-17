@@ -7,13 +7,32 @@ import numpy as np
 
 # Base input and output paths - [change these paths to your directories]
 base_input = r"C:\Users\Althea\COLLEGE\THESIS\Dataset\FSL-105 A dataset for recognizing 105 Filipino sign language videos\clips"
-base_output = r"C:\Users\Althea\COLLEGE\THESIS\MVTN\src_mvtn\datasets\FSL105_Frames"
+base_output = r"C:\Users\Althea\COLLEGE\THESIS\MVTN\src_mvtn\datasets\FSL105_ResizedFrames"
 
 # Number of frames to extract from each video
 num_frames = 40
 
-# not yet sure
+## not yet sure ##
+# Just set desired frame size here, however, image might look stretched or squished
 # frame_size = (224, 224)
+
+# resize and center crop function to 224x224
+# center crop is used to maintain aspect ratio so that image won't look stretched or squished
+def resize_and_center_crop(frame, crop_size=224, resize_shorter=256):
+    h, w, _ = frame.shape
+    # Resize shorter side
+    if h < w:
+        new_h = resize_shorter
+        new_w = int(w * (resize_shorter / h))
+    else:
+        new_w = resize_shorter
+        new_h = int(h * (resize_shorter / w))
+    resized = cv2.resize(frame, (new_w, new_h))
+    # Center crop
+    start_x = (new_w - crop_size) // 2
+    start_y = (new_h - crop_size) // 2
+    cropped = resized[start_y:start_y + crop_size, start_x:start_x + crop_size]
+    return cropped
 
 def numeric_sort(files):
     # Sort file list numerically by filename before extension.
@@ -64,8 +83,10 @@ for folder in sorted(os.listdir(base_input), key=lambda x: int(x) if x.isdigit()
             if count in frame_indices:
                 # not yet sure
                 # resized_frame = cv2.resize(frame, frame_size)
+                processed_frame = resize_and_center_crop(frame)
                 filename = os.path.join(save_dir, f"frame_{extracted+1}.jpg")
-                cv2.imwrite(filename, frame) 
+                cv2.imwrite(filename, processed_frame)
+                # cv2.imwrite(filename, frame) # no resize version
                 extracted += 1
 
             count += 1
