@@ -70,4 +70,9 @@ src_mvtn/
 ├── main.py                           # Main pipeline (entry point; loads configs, datasets, model, training/testing)
 ├── train.py                          # For training
 ├── test.py                           # For testing
+
+
+Note: Not yet working but to run the program
+python main.py --hypes hyperparameters/FSL105/train.json --phase train
+
 ```
