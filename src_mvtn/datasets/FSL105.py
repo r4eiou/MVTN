@@ -2,9 +2,12 @@ import os
 import math
 import torch
 from pathlib import Path
+
 import cv2
 import numpy as np
+
 from torch.utils.data.dataset import Dataset
+
 from datasets.utils.normalize import normalize
 import json
 
@@ -40,7 +43,7 @@ class FSL105(Dataset):
         with open(split_file, "r") as f:
             data = json.load(f)
 
-        # Prepare clips with exactly n_frames
+        # Prepare clips with exactly n_frames (already resized to 224x224 in preprocessing)
         fixed_data = []
         for record in data:
             # Directly keep the folder path string
