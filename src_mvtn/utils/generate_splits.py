@@ -29,6 +29,8 @@ for sign in signs:
 
     for i, vid in enumerate(videos):
         video_path = os.path.join(sign_path, vid)
+        # Replace backslashes with forward slashes
+        video_path = video_path.replace("\\", "/")
 
         entry = {
             "video_id": f"sign{sign}_vid{vid}",

@@ -31,6 +31,7 @@ src_mvtn/
 │   ├── utils_briareo.py              # Briareo dataset utilities
 │   ├── Briareo.py                    # Briareo dataset loader
 │   ├── NVGestures.py                 # NVGestures dataset loader
+|   ├── FSL105.py                     # FSL105 dataset loader
 │
 ├── hyperparameters/                  # Config files for training & testing
 │   ├── Briareo/
@@ -41,8 +42,10 @@ src_mvtn/
 │   │   ├── train.json
 │   │   └── test.json
 │   │
-│   └── (Create FSL105/ here)         # TODO: add configs for FSL105
-│
+│   └── FSL105/      
+│   │   ├── train.json
+│   │   └── test.json
+│   │
 ├── Models/
 │   ├── backbones/                    # Feature extractors
 │   │   ├── resnet.py                 # ResNet backbone (frame-level feature extractor)
@@ -64,7 +67,7 @@ src_mvtn/
 │   └── visualization.py              # Training progress visualization
 │
 ├── cs.py / cs2.py                    # Custom experiment scripts
-├── main.py                           # Main pipeline (loads configs, datasets, model)
-├── train.py                          # Training entry point
-├── test.py                           # Testing entry point
+├── main.py                           # Main pipeline (entry point; loads configs, datasets, model, training/testing)
+├── train.py                          # For training
+├── test.py                           # For testing
 ```

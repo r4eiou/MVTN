@@ -7,6 +7,7 @@ import imgaug.augmenters as iaa
 # Import Datasets
 from datasets.Briareo import Briareo
 from datasets.NVGestures import NVGesture
+from datasets.FSL105 import FSL105   # add this import
 from models.model_utilizer import ModuleUtilizer
 
 # Import Model
@@ -101,6 +102,9 @@ class GestureTest(object):
         elif self.dataset == "nvgestures":
             Dataset = NVGesture
             self.transforms = iaa.CenterCropToFixedSize(256, 192)
+        elif self.dataset == "FSL105":
+            Dataset = FSL105
+            self.transforms = iaa.Resize({"height": 224, "width": 224})
         else:
             raise NotImplementedError(f"Dataset not supported: {self.configer.get('dataset')}")
 
