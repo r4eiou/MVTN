@@ -8,8 +8,8 @@
     "type": "rgb",
     "n_classes": 104,
     "n_frames": 40,
-    "data_path": "datasets/FSL105_ResizedFrames",
-    "split_path": "datasets/FSL105_ResizedFrames/splits", 
+    "data_path": "datasets/FSL105",
+    "split_path": "datasets/FSL105/splits", 
     "result_dnormal": "./result",
     "batch_size": 8
   },

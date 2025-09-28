@@ -1,111 +1,77 @@
 import os
 import math
 import torch
-from pathlib import Path
-
 import cv2
 import numpy as np
-
+from pathlib import Path
 from torch.utils.data.dataset import Dataset
-
-from datasets.utils.normalize import normalize
 import json
 
 class FSL105(Dataset):
-    """FSL105 Dataset class - Briareo-style, RGB frames only"""
+    """FSL105 Dataset class: Reads video files and extracts n_frames clips (RGB only)."""
     def __init__(self, configer, path, split="train", data_type='rgb', transforms=None, n_frames=40, optical_flow=False):
-        """Constructor method for FSL105 Dataset class
-        
-        Args:
-            configer: Configer object
-            path: dataset root path
-            split: train/val/test
-            data_type: RGB only for FSL105 (kept for Briareo signature)
-            transforms: optional transforms
-            n_frames: number of frames per clip
-            optical_flow: ignored for FSL105
-        """
         super().__init__()
 
         self.dataset_path = Path(path)
         self.split = split
-        self.data_type = data_type          # kept for signature
+        self.data_type = data_type
         self.transforms = transforms
         self.n_frames = n_frames
-        self.optical_flow = optical_flow    # kept for signature
 
-        print(f"Loading FSL105 {split.upper()} dataset...", end=" ")
-
-        # Load JSON split
+        # Load JSON split file
         split_file = self.dataset_path / "splits" / f"{split}.json"
-        if not split_file.exists():
-            raise FileNotFoundError(f"{split_file} does not exist!")
         with open(split_file, "r") as f:
-            data = json.load(f)
+            self.data = np.array(json.load(f))
 
-        # Prepare clips with exactly n_frames (already resized to 224x224 in preprocessing)
-        fixed_data = []
-        for record in data:
-            # Directly keep the folder path string
-            record["frames"] = record["frames"]
-            fixed_data.append(record)
-
-        self.data = fixed_data
-        print("done.")
+        print(f"Loaded FSL105 {split.upper()} dataset ({len(self.data)} samples)")
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        sample = self.data[idx]
-        label = sample["label"]
+        entry = self.data[idx]
+        video_path = entry['video_path']
+        label = entry['label']
 
-        frames_folder = Path(sample["frames"])
-        if not frames_folder.is_absolute():
-            frames_folder = (self.dataset_path / frames_folder).resolve()
-        else:
-            frames_folder = frames_folder.resolve()
-        # print(f"[DEBUG] Reading frames from folder: {frames_folder}") # Debug print
+        # Read video and extract frames
+        cap = cv2.VideoCapture(video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_indices = self._get_center_frames(total_frames, self.n_frames)
 
-        # Read all JPG frames from the folder
-        frame_files = sorted(frames_folder.glob("*.jpg"))
-        # print(f"[DEBUG] Found {len(frame_files)} frames. Sample files: {frame_files[:5]}") # Debug print
-
-        if len(frame_files) < self.n_frames:
-            raise ValueError(f"Not enough frames in {frames_folder}")
-
-        # Sample n_frames evenly
-        if len(frame_files) > self.n_frames:
-            indices = np.linspace(0, len(frame_files) - 1, self.n_frames, dtype=int)
-            frame_files = [frame_files[i] for i in indices]
-        else:
-            frame_files = frame_files[:self.n_frames]
-
-        # Load frames
         clip = []
-        for f in frame_files:
-            img = cv2.imread(str(f))
-            if img is None:
-                raise FileNotFoundError(f"Cannot read image {f}")
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # Resize immediately to fixed size
-            img = cv2.resize(img, (224, 224))
-            clip.append(img)
+        for i in frame_indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+            ret, frame = cap.read()
+            if not ret:
+                # If reading fails, duplicate last frame
+                frame = clip[-1] if len(clip) > 0 else np.zeros((224, 224, 3), dtype=np.uint8)
+            frame = cv2.resize(frame, (224, 224))
+            clip.append(frame)
+        cap.release()
 
-        clip = np.array(clip)  # (T, H, W, C)
+        clip = np.array(clip).transpose(1, 2, 3, 0)  # HWC -> HWC×T
 
-        # print(f"[DEBUG] Clip shape after resizing: {clip.shape}, should be ({self.n_frames}, 224, 224, 3)")
+        # normalize RGB
+        clip = clip.astype(np.float32) / 255.0
 
-        # Normalize
-        clip = normalize(clip)
-
-        # Apply augmentations
+        # apply augmentation if any
         if self.transforms is not None:
             aug_det = self.transforms.to_deterministic()
-            clip = np.array([cv2.resize(aug_det.augment_image(clip[i]), (224, 224)) for i in range(clip.shape[0])])
+            clip = np.array([aug_det.augment_image(clip[..., i]) for i in range(clip.shape[-1])]).transpose(1, 2, 3, 0)
 
-        # Convert to tensor in (C, T, H, W) like Briareo
-        clip = torch.from_numpy(clip).permute(3, 0, 1, 2).float()
-        label = torch.tensor(label, dtype=torch.long)
+        # convert to torch tensor (C × H × W × T)
+        clip = torch.from_numpy(clip.reshape(clip.shape[0], clip.shape[1], -1).transpose(2, 0, 1))
+        label = torch.LongTensor(np.asarray([label]))
 
-        return clip, label
+        return clip.float(), label
+
+    def _get_center_frames(self, total_frames, n_frames):
+        """Return n_frames indices centered in the video."""
+        if total_frames <= n_frames:
+            # repeat last frame if video too short
+            return list(range(total_frames)) + [total_frames - 1] * (n_frames - total_frames)
+        center = total_frames // 2
+        half = n_frames // 2
+        start = max(center - half, 0)
+        end = start + n_frames
+        return list(range(start, end))
